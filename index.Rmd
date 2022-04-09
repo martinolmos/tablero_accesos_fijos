@@ -1,0 +1,115 @@
+---
+title: "Tablero de Accesos Fijos de Argentina"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    output_dir: docs
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(plotly)
+```
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### Accesos Fijos cada 100 Hogares por Provincia
+
+```{r}
+# Penetracion por provincia: accesos cada 100 hogares
+pen_prov_hog <- read_csv("https://datosabiertos.enacom.gob.ar/rest/datastreams/275028/data.csv", 
+                         n_max = 24, 
+                         locale = locale(decimal_mark = ","))
+
+pen_prov_hog_plot <- pen_prov_hog %>% 
+  ggplot(aes(x = reorder(Provincia, `Accesos por cada 100 hogares`),
+             y = `Accesos por cada 100 hogares`,
+             text = Provincia)) +
+  geom_col(data=pen_prov_hog, aes(x=reorder(Provincia, `Accesos por cada 100 hogares`)), fill = "red") +
+  coord_flip() +
+  theme_bw() +
+  theme(axis.text.y = element_text(size = 6), axis.title = element_blank())
+
+ggplotly(pen_prov_hog_plot, tooltip = c("text", "y"))
+
+```
+
+### Evolución Accesos por cada 100 habitantes
+
+```{r}
+# Penetración: accesos cada 100 habitantes. Serie histórica
+pen_nac_hab_serie <- read_csv("https://datosabiertos.enacom.gob.ar/rest/datastreams/281491/data.csv",
+                              locale = locale(decimal_mark = ","))
+
+pen_nac_hab_serie_plot <- pen_nac_hab_serie %>% 
+  ggplot(aes(x = fct_reorder(Periodo, paste0(Año, Trimestre), .desc = FALSE), 
+             y = `Accesos por cada 100 hab`,
+             text = Periodo)) +
+  geom_point() +
+  geom_line(aes(group = 1)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+        axis.title = element_blank())
+
+ggplotly(pen_nac_hab_serie_plot, tooltip = c("text", "y"))
+
+```
+
+Column {data-width=500}
+-----------------------------------------------------------------------
+
+### Evolución de la Velocidad Media de Descarga
+
+```{r}
+# Velocidad Media de Descarga (Mbps) - Nacional
+vmd_nac_serie <- read_csv("https://datosabiertos.enacom.gob.ar/rest/datastreams/275016/data.csv", col_names = c("Año", "Trimestre", "Velocidad Media de Descarga", "Periodo"), skip = 1,
+                          locale = locale(decimal_mark = ","))
+
+vmd_nac_serie_plot <- vmd_nac_serie %>% 
+  ggplot(aes(x = fct_reorder(Periodo, paste0(Año, Trimestre), .desc = FALSE), 
+             y = `Velocidad Media de Descarga`,
+             text = Periodo)) +
+  geom_point() +
+  geom_line(aes(group = 1)) +
+  labs(y = "VMD en Mbps") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
+        axis.title.x = element_blank())
+
+ggplotly(vmd_nac_serie_plot, tooltip = c("text", "y"))
+
+```
+
+### Evolución de Accesos Fijos por Tecnología
+
+```{r}
+tec_nac_serie <- read_csv("https://datosabiertos.enacom.gob.ar/rest/datastreams/275029/data.csv",
+                          locale = locale(decimal_mark = ","))
+
+tec_nac_serie <- tec_nac_serie %>% 
+  select(-Total) %>% 
+  gather(Tecnología, Accesos, ADSL:Otros)
+
+tec_nac_serie_plot <- tec_nac_serie %>% 
+  ggplot(aes(x = fct_reorder(Periodo, paste0(Año, Trimestre), .desc = FALSE), 
+             y = Accesos,
+             group = Tecnología,
+             color = Tecnología,
+             text = Periodo)) +
+  geom_line() +
+  scale_y_continuous(labels = c("0", "2M", "4M", "6M")) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8), 
+        axis.title = element_blank(), 
+        legend.title = element_blank())
+
+ggplotly(tec_nac_serie_plot, tooltip = c("text", "color", "y")) %>% 
+  layout(legend = list(title = "", 
+                       orientation = "h",
+                       y = 1.3))
+
+```
+
